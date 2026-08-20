@@ -1,0 +1,63 @@
+schema: spec-driven
+
+project: geosamples-demo
+context: |
+  Demo project for an agentic-development talk (gentle-ai / SDD full cycle):
+  a geological-sample registration and query system.
+  Stack: none yet (repo freshly initialized, no app files)
+  Architecture: TBD (planned in later phases)
+  Testing: none detected (no runner/config present)
+  Style: TBD
+  Data: data/muestras.tsv — 99 records, 20 columns (IGM, CodigoMuestra,
+  NombreEstacion, EstacionCompanero, SimboloUG, UGMapa, SubUnidad,
+  DescripcionMuestra, NombreRoca, Localizacion, Plancha, Norte, Este, Altura,
+  SistemaCoordenadas, Fecha, Proyecto, NombreColector, ExisteMuestra,
+  TipoAnalisis). UTF-8, no trailing newline.
+
+session:
+  artifact_store:
+    mode: hybrid          # openspec files + Engram observations
+  execution_mode: interactive
+  delivery_strategy: ask-on-risk
+  review_budget_lines: 400
+
+testing:
+  strict_tdd: false
+  reason: "No test runner detected (no package.json, go.mod, pyproject.toml, Cargo.toml, Makefile, or CI config). strict_tdd will be re-evaluated when a stack is chosen."
+  detected: 2026-08-20
+  runner: null
+  layers:
+    unit: false
+    integration: false
+    e2e: false
+  coverage:
+    available: false
+    command: null
+  quality:
+    linter: null
+    type_checker: null
+    formatter: null
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns
+    tdd: false            # no test runner; RED-GREEN-REFACTOR unavailable
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
