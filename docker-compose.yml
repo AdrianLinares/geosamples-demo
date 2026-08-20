@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16
+    container_name: geosamples-db
+    environment:
+      POSTGRES_DB: geosamples
+      POSTGRES_USER: geosamples
+      POSTGRES_PASSWORD: geosamples
+    ports:
+      - "5432:5432"
+    volumes:
+      - geosamples-data:/var/lib/postgresql/data
+      # Applied on first init of the named volume (idempotent seed data anyway).
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geosamples -d geosamples"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  geosamples-data:
