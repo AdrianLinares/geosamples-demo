@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dirigir agentes que construyen software — ciclo SDD con gentle-ai</title>
+<style>
+  :root {
+    --bg: #0D1117;
+    --bg-card: #161B22;
+    --border: #30363D;
+    --text: #E6EDF3;
+    --text-dim: #8B949E;
+    --green: #3FB950;
+    --cyan: #58A6FF;
+    --teal: #39C5CF;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: clamp(16px, 1.6vw, 24px);
+    line-height: 1.5;
+  }
+
+  /* ---------- slides ---------- */
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 6vh 7vw 10vh;
+    text-align: center;
+  }
+  .slide.active { display: flex; }
+  .slide.left { text-align: left; align-items: flex-start; }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: clamp(0.65rem, 1.1vw, 0.85rem);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 2.5vh;
+  }
+  h1 { font-size: clamp(2rem, 5vw, 3.8rem); font-weight: 800; line-height: 1.15; }
+  h2 { font-size: clamp(1.6rem, 3.6vw, 2.7rem); font-weight: 700; margin-bottom: 4vh; line-height: 1.2; }
+  .subtitle { color: var(--text-dim); font-size: clamp(1rem, 1.8vw, 1.35rem); margin-top: 2.5vh; }
+  .accent { color: var(--green); }
+  .cyan { color: var(--cyan); }
+  .mono { font-family: var(--mono); }
+
+  ul.bullets { list-style: none; text-align: left; }
+  ul.bullets li {
+    margin: 1.6vh 0;
+    padding-left: 1.6em;
+    position: relative;
+    font-size: clamp(1rem, 2vw, 1.45rem);
+  }
+  ul.bullets li::before { content: "▸"; color: var(--green); position: absolute; left: 0; }
+  ul.bullets li b { color: var(--cyan); }
+
+  /* portada */
+  .title-rule { width: 120px; height: 4px; background: var(--green); margin: 3vh auto 0; border-radius: 2px; }
+
+  /* hook: browser mockup */
+  .browser {
+    width: min(680px, 80vw);
+    margin-top: 4vh;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-card);
+    text-align: left;
+  }
+  .browser-bar {
+    display: flex; gap: 8px; padding: 10px 14px;
+    background: #21262D; border-bottom: 1px solid var(--border);
+  }
+  .browser-bar span { width: 12px; height: 12px; border-radius: 50%; background: #3d444d; }
+  .browser-bar span:nth-child(1) { background: #f85149; }
+  .browser-bar span:nth-child(2) { background: #d29922; }
+  .browser-bar span:nth-child(3) { background: #3fb950; }
+  .browser-body {
+    padding: 28px 22px;
+    font-family: var(--mono);
+    font-size: clamp(0.9rem, 1.6vw, 1.2rem);
+    color: var(--text-dim);
+  }
+  .browser-body b { color: var(--green); }
+
+  /* principios: tarjetas */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2vw; width: 100%; max-width: 1200px; }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 3.2vh 1.6vw;
+    text-align: left;
+  }
+  .card .num { font-family: var(--mono); color: var(--teal); font-size: clamp(0.8rem, 1.3vw, 1rem); margin-bottom: 1.2vh; }
+  .card h3 { font-size: clamp(1.05rem, 1.9vw, 1.5rem); margin-bottom: 1.2vh; }
+  .card p { color: var(--text-dim); font-size: clamp(0.85rem, 1.5vw, 1.1rem); }
+
+  /* tabla genérica */
+  table { border-collapse: collapse; width: 100%; max-width: 1100px; margin: 0 auto; }
+  th, td { border: 1px solid var(--border); padding: 1.4vh 1.2vw; text-align: left; font-size: clamp(0.85rem, 1.55vw, 1.2rem); }
+  th { font-family: var(--mono); color: var(--teal); font-weight: 600; background: var(--bg-card); }
+  td.dim { color: var(--text-dim); }
+  tr.total td { background: var(--bg-card); font-weight: 700; }
+
+  /* ciclo SDD */
+  .cycle { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2vw; width: 100%; max-width: 1250px; }
+  .phase {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 2vh 0.8vw;
+    text-align: center;
+  }
+  .phase .name { font-weight: 700; font-size: clamp(0.95rem, 1.7vw, 1.35rem); }
+  .phase .art { font-family: var(--mono); color: var(--green); font-size: clamp(0.68rem, 1.15vw, 0.92rem); margin-top: 0.8vh; }
+  .caption { color: var(--text-dim); margin-top: 4vh; font-size: clamp(0.9rem, 1.6vw, 1.2rem); }
+
+  /* número grande */
+  .big-number {
+    font-family: var(--mono);
+    font-size: clamp(3.5rem, 10vw, 7.5rem);
+    font-weight: 800;
+    color: var(--green);
+    line-height: 1.1;
+  }
+  .big-number-label { color: var(--text-dim); margin-top: 1vh; }
+
+  /* divider */
+  .divider-text { font-size: clamp(2.6rem, 7vw, 5.5rem); font-weight: 800; line-height: 1.1; }
+  .divider-sub { color: var(--text-dim); margin-top: 3.5vh; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 900px; }
+  .divider-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.8vh 1.4vw;
+    color: var(--green);
+    margin-bottom: 4vh;
+    font-size: clamp(0.75rem, 1.3vw, 1rem);
+  }
+
+  /* historias */
+  .stories { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; width: 100%; max-width: 1250px; }
+  .story {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 3vh 1.8vw;
+    text-align: left;
+  }
+  .story h3 { font-size: clamp(1rem, 1.8vw, 1.4rem); margin-bottom: 1.5vh; line-height: 1.35; }
+  .story .lesson { color: var(--text-dim); font-size: clamp(0.88rem, 1.55vw, 1.15rem); }
+  .story .lesson::before { content: "→ "; color: var(--green); font-weight: 700; }
+  .story .tag { font-family: var(--mono); color: var(--teal); font-size: clamp(0.68rem, 1.1vw, 0.9rem); display: block; margin-bottom: 1vh; }
+
+  /* cita / cierre */
+  blockquote.quote {
+    font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+    font-weight: 700;
+    line-height: 1.35;
+    max-width: 1050px;
+  }
+  blockquote.quote::before { content: "“"; color: var(--green); }
+  blockquote.quote::after { content: "”"; color: var(--green); }
+
+  .footnote {
+    margin-top: 4.5vh;
+    color: var(--text-dim);
+    font-size: clamp(0.8rem, 1.4vw, 1.05rem);
+    border-left: 3px solid var(--border);
+    padding-left: 1.2em;
+    text-align: left;
+    max-width: 950px;
+  }
+  .footnote b { color: var(--text); }
+
+  code.inline {
+    font-family: var(--mono);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.1em 0.45em;
+    font-size: 0.9em;
+    color: var(--teal);
+    white-space: nowrap;
+  }
+
+  .steps { text-align: left; counter-reset: paso; }
+  .steps li {
+    list-style: none;
+    margin: 2.2vh 0;
+    padding-left: 3em;
+    position: relative;
+    font-size: clamp(1.05rem, 2vw, 1.5rem);
+  }
+  .steps li::before {
+    counter-increment: paso;
+    content: counter(paso);
+    position: absolute; left: 0;
+    font-family: var(--mono);
+    color: var(--bg);
+    background: var(--green);
+    border-radius: 8px;
+    width: 2em; height: 2em;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+  }
+
+  /* ---------- chrome ---------- */
+  #progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--green); width: 0%; transition: width 0.15s ease; z-index: 50; }
+  #counter {
+    position: fixed; bottom: 18px; right: 26px;
+    font-family: var(--mono); font-size: 0.8rem; color: var(--text-dim); z-index: 50;
+  }
+  #help {
+    position: fixed; bottom: 18px; left: 26px;
+    font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim);
+    opacity: 0.55; z-index: 50;
+  }
+  .notes {
+    display: none;
+    position: fixed; bottom: 52px; left: 26px; right: 26px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--teal);
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    z-index: 60;
+    text-align: left;
+  }
+  .notes b { color: var(--teal); font-family: var(--mono); font-size: 0.8rem; display: block; margin-bottom: 4px; }
+  body.notes-on .notes { display: block; }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="counter"></div>
+<div id="help">← → navegar &nbsp;·&nbsp; N notas &nbsp;·&nbsp; F pantalla completa</div>
+
+<!-- 1 · PORTADA -->
+<section class="slide">
+  <div class="kicker">Charla técnica · Desarrollo agéntico</div>
+  <h1>Dirigir agentes que<br><span class="accent">construyen software</span></h1>
+  <div class="title-rule"></div>
+  <p class="subtitle">El ciclo Spec-Driven Development con gentle-ai<br>— demo en vivo incluida —</p>
+  <aside class="notes"><b>NOTAS</b>Bienvenida. Promesa: hoy no vamos a hablar de IA en abstracto, vamos a ver un proceso funcionando en vivo sobre un sistema real.</aside>
+</section>
+
+<!-- 2 · HOOK -->
+<section class="slide">
+  <blockquote class="quote">Esto lo construyeron<br>agentes dirigidos.</blockquote>
+  <div class="browser">
+    <div class="browser-bar"><span></span><span></span><span></span></div>
+    <div class="browser-body">Catálogo geológico · <b>99 samples</b> — page 1 of 4<br>[ SPA React + Vite → :5173 ]</div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>Aquí se muestra la SPA real en el navegador. Transición: «¿Cómo se llega de un TSV con datos sucios a esto? Hay un proceso detrás: Spec-Driven Development».</aside>
+</section>
+
+<!-- 3 · LA PROMESA -->
+<section class="slide">
+  <div class="kicker">La promesa de hoy</div>
+  <h2>Al terminar, sabrá cómo correr<br>un <span class="accent">ciclo SDD completo</span><br>y qué esperar en cada fase</h2>
+  <ul class="bullets">
+    <li>Esto no es <b>autopilot</b></li>
+    <li>El humano dirige, los agentes ejecutan, <b>la verificación decide</b></li>
+  </ul>
+  <aside class="notes"><b>NOTAS</b>Fijar expectativa: la charla termina con un procedimiento replicable, no con demos sueltas. Transición: tres principios sostienen ese proceso.</aside>
+</section>
+
+<!-- 4 · TRES PRINCIPIOS -->
+<section class="slide">
+  <div class="kicker">Qué es desarrollo agéntico</div>
+  <h2>Tres principios</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="num">01</div>
+      <h3>El humano dirige</h3>
+      <p>Especifica el alcance, aprueba el spec, corta las fases y decide en cada punto.</p>
+    </div>
+    <div class="card">
+      <div class="num">02</div>
+      <h3>Verificación honesta</h3>
+      <p>Tests, escenarios y evidencia. Nunca «confíe en mí»: el veredicto se demuestra.</p>
+    </div>
+    <div class="card">
+      <div class="num">03</div>
+      <h3>Costos por diseño</h3>
+      <p>Tokens, tiempo de máquina y, sobre todo, tiempo de revisión humana.</p>
+    </div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>Cada principio se encarna en el proceso que viene. El tercero abre la conversación de modelos: elegir modelo es una decisión de arquitectura.</aside>
+</section>
+
+<!-- 5 · GO VS ZEN -->
+<section class="slide">
+  <div class="kicker">Elegir modelo es decisión de arquitectura</div>
+  <h2><span class="accent">Go</span> vs <span class="cyan">Zen</span></h2>
+  <table>
+    <tr><th></th><th>OpenCode Go</th><th>OpenCode Zen</th></tr>
+    <tr><td class="dim">Costo</td><td>Suscripción plana · <b>$10/mes</b></td><td>Pay-per-token</td></tr>
+    <tr><td class="dim">Catálogo</td><td>Modelos open-source curados (GLM, Qwen, Kimi)</td><td>Premium (Claude Sonnet 5)</td></tr>
+    <tr><td class="dim">Rol en el ciclo</td><td>Volumen: el ciclo completo</td><td>Techo de calidad en fases críticas</td></tr>
+  </table>
+  <p class="footnote"><b>Los gratuitos sirven para probar, no para producir:</b> son promocionales y mueren sin aviso — DeepSeek Free dejó de responder mientras preparamos esta charla.</p>
+  <aside class="notes"><b>NOTAS</b>Anécdota real: el modelo gratuito del primer ensayo murió durante la preparación. Por eso la cadena corre sobre planes pagos: confiabilidad, no marketing.</aside>
+</section>
+
+<!-- 6 · EL CICLO SDD -->
+<section class="slide">
+  <div class="kicker">El proceso</div>
+  <h2>El ciclo SDD: <span class="accent">8 fases</span>, un artefacto cada una</h2>
+  <div class="cycle">
+    <div class="phase"><div class="name">explore</div><div class="art">exploration.md</div></div>
+    <div class="phase"><div class="name">propose</div><div class="art">proposal.md</div></div>
+    <div class="phase"><div class="name">spec</div><div class="art">spec.md</div></div>
+    <div class="phase"><div class="name">design</div><div class="art">design.md</div></div>
+    <div class="phase"><div class="name">tasks</div><div class="art">tasks.md</div></div>
+    <div class="phase"><div class="name">apply</div><div class="art">código + tests</div></div>
+    <div class="phase"><div class="name">verify</div><div class="art">verify-report.md</div></div>
+    <div class="phase"><div class="name">archive</div><div class="art">rastro archivado</div></div>
+  </div>
+  <p class="caption">Cada fase produce un artefacto revisable — nada vive solo en la conversación.</p>
+  <aside class="notes"><b>NOTAS</b>Idea clave: el estado del trabajo vive en archivos, no en el chat. Si la sesión muere, el proceso sobrevive. Transición: veamos el contrato central.</aside>
+</section>
+
+<!-- 7 · EL SPEC ES UN CONTRATO -->
+<section class="slide">
+  <div class="kicker">La pieza central</div>
+  <h2>El spec es un contrato</h2>
+  <ul class="bullets">
+    <li>Requerimientos + escenarios <b>Given / When / Then</b></li>
+    <li>Verify juzga contra el spec, <b>no contra la intuición</b></li>
+  </ul>
+  <div style="margin-top:5vh;">
+    <div class="big-number">45/45</div>
+    <div class="big-number-label">escenarios COMPLIANT en el sistema real — uno por uno, con test que lo cubre</div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>Mostrar openspec/specs/sample-query/spec.md si hay tiempo. Este número es del ciclo que construyó el sistema inicial, no un ejemplo inventado.</aside>
+</section>
+
+<!-- 8 · DIVIDER DEMO -->
+<section class="slide">
+  <div class="divider-tag">demo en vivo</div>
+  <div class="divider-text">DEMO<br><span class="accent">EN VIVO</span></div>
+  <p class="divider-sub">El cambio: filtro geográfico por bounding box<br>
+  <span class="mono" style="color:var(--teal)">norteMin · norteMax · esteMin · esteMax</span><br>— API + interfaz, con tests juntos.</p>
+  <p class="divider-sub" style="font-size:clamp(0.85rem,1.5vw,1.1rem);">Estaba diferido en el proposal original: lo agregamos en vivo como continuación honesta del roadmap.</p>
+  <aside class="notes"><b>NOTAS</b>Inicia el segmento central. Recordar: consigna exacta en B0 del runbook. A partir de aquí, este deck queda en el tracker (siguiente slide).</aside>
+</section>
+
+<!-- 9 · TRACKER DEL CICLO (FIJO DURANTE LA DEMO) -->
+<section class="slide">
+  <div class="kicker">Ciclo en vivo</div>
+  <h2>Time-boxes <span class="accent">vs</span> ensayo medido</h2>
+  <table>
+    <tr><th>Etapa</th><th>Time-box</th><th>Medido en ensayo</th></tr>
+    <tr><td>Consigna</td><td class="dim">1 min</td><td class="dim">—</td></tr>
+    <tr><td>explore</td><td class="dim">1–2 min</td><td class="mono">3m17s</td></tr>
+    <tr><td>propose</td><td class="dim">1–2 min</td><td class="mono">2m39s</td></tr>
+    <tr><td>spec</td><td class="dim">2–3 min</td><td class="mono">2m51s</td></tr>
+    <tr><td>design</td><td class="dim">1–2 min</td><td class="mono">3m23s</td></tr>
+    <tr><td>tasks</td><td class="dim">1–2 min</td><td class="mono">4m55s</td></tr>
+    <tr><td>apply</td><td class="dim">4–7 min</td><td class="mono">18m57s</td></tr>
+    <tr><td>verify</td><td class="dim">1–2 min</td><td class="mono">3m16s</td></tr>
+    <tr><td>cierre</td><td class="dim">30 s</td><td class="dim">—</td></tr>
+  </table>
+  <p class="caption"><span class="accent">El corte por tiempo es parte de la narrativa:</span> así termina una sesión real — en verify o en el corte, no en «ya quedó».</p>
+  <aside class="notes"><b>NOTAS</b>Este slide permanece fijo durante toda la demo. Si una fase excede el time-box: cortar, mostrar el pre-capturado y decirlo en voz alta.</aside>
+</section>
+
+<!-- 10 · CIERRE DE DEMO -->
+<section class="slide">
+  <div class="kicker">Cierre de la demo</div>
+  <blockquote class="quote">No es magia:<br>es un proceso con artefactos,<br>tests y un humano decidiendo<br>en cada fase.</blockquote>
+  <aside class="notes"><b>NOTAS</b>Dejar respirar. Transición: «el viaje de esta demo es chico; el viaje real que construyó el sistema tiene historias mejores».</aside>
+</section>
+
+<!-- 11 · DIVIDER HISTORIAS -->
+<section class="slide">
+  <div class="divider-tag">lecciones del viaje real</div>
+  <div class="divider-text">8 historias,<br><span class="accent">0 anécdotas inventadas</span></div>
+  <p class="divider-sub">Todo lo que sigue pasó de verdad — y cada historia deja evidencia en el repositorio.</p>
+  <aside class="notes"><b>NOTAS</b>Tono: confesar errores propios genera más credibilidad que ocultarlos. Ritmo: ~30–40 s por historia.</aside>
+</section>
+
+<!-- 12 · HISTORIAS 1-2 -->
+<section class="slide">
+  <div class="kicker">Historias 1–2</div>
+  <div class="stories">
+    <div class="story">
+      <span class="tag">historia 01 · datos</span>
+      <h3>57 variantes de roca → 42 canónicas. Typos de colectores («Pado» → «Pardo»). Fechas sin padding.</h3>
+      <p class="lesson">el EXPLORE paga: sin canonicalización, los filtros mienten</p>
+    </div>
+    <div class="story">
+      <span class="tag">historia 02 · alcance</span>
+      <h3>Forecast de ~1800 líneas contra un presupuesto de revisión de 400 → 3 chained PRs apilados.</h3>
+      <p class="lesson">el proceso protege al reviewer humano</p>
+    </div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>H1: mostrar /api/meta (42 rocas, 12 colectores, 4 análisis). H2: el budget existe para que alguien pueda revisar de verdad.</aside>
+</section>
+
+<!-- 13 · HISTORIAS 3-4 -->
+<section class="slide">
+  <div class="kicker">Historias 3–4</div>
+  <div class="stories">
+    <div class="story">
+      <span class="tag">historia 03 · mocks</span>
+      <h3>Bug de schema.sql que ningún test con mock atrapó: constraint UNIQUE sobre expresión es inválida en Postgres.</h3>
+      <p class="lesson">los mocks pasan; la realidad te corrige</p>
+    </div>
+    <div class="story">
+      <span class="tag">historia 04 · evidencia</span>
+      <h3>Idempotencia del seed probada con mock (198 intentos, 0 duplicados) antes de tener base real.</h3>
+      <p class="lesson">verificación honesta con la mejor evidencia disponible en cada momento</p>
+    </div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>H3: apareció recién en el seed en vivo. H4: el mock no reemplaza la realidad, pero permite avanzar verificando.</aside>
+</section>
+
+<!-- 14 · HISTORIAS 5-6 -->
+<section class="slide">
+  <div class="kicker">Historias 5–6</div>
+  <div class="stories">
+    <div class="story">
+      <span class="tag">historia 05 · config</span>
+      <h3>Nadie cargaba .env: funcionaba «de casualidad» porque el default coincidía con docker-compose.</h3>
+      <p class="lesson">los defaults cómodos esconden configuraciones que no lo son</p>
+    </div>
+    <div class="story">
+      <span class="tag">historia 06 · seguridad</span>
+      <h3>Auth fail-closed: ADMIN_USERS vacío bloquea todo; 401 idénticos para credenciales inválidas.</h3>
+      <p class="lesson">seguridad por diseño: el sistema no filtra información por error</p>
+    </div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>H5: fix con --env-file nativo de Node. H6: demostrar con dos curls que devuelven exactamente el mismo cuerpo.</aside>
+</section>
+
+<!-- 15 · HISTORIAS 7-8 -->
+<section class="slide">
+  <div class="kicker">Historias 7–8</div>
+  <div class="stories">
+    <div class="story">
+      <span class="tag">historia 07 · contrato</span>
+      <h3>La API de registro exige nombres canónicos, no IDs: mandar un ID devuelve 400 — comportamiento correcto.</h3>
+      <p class="lesson">el contrato protege la integridad del catálogo</p>
+    </div>
+    <div class="story">
+      <span class="tag">historia 08 · verify</span>
+      <h3>Verify falló al primer intento: 2 escenarios críticos sin test → 2 remediaciones → PASS 45/45.</h3>
+      <p class="lesson">verify no es cosmético: atrapó huecos de cobertura reales</p>
+    </div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>H7: curl en vivo con nombre no canónico. H8: cerrar con la idea fuerza — el proceso expone problemas en vez de esconderlos.</aside>
+</section>
+
+<!-- 16 · ANTI-PATRONES -->
+<section class="slide">
+  <div class="kicker">Errores comunes</div>
+  <h2>Anti-patrones</h2>
+  <ul class="bullets">
+    <li><b>Promptear y rezar</b>: pedir sin especificación ni verificación</li>
+    <li>Dejar que el agente haga todo <b>sin revisar</b></li>
+    <li>Ignorar los <b>datos reales</b></li>
+    <li>Tests que solo pasan <b>en mock</b></li>
+    <li>No definir qué es <b>«listo»</b></li>
+    <li>Mezclar modelos <b>sin criterio</b></li>
+  </ul>
+  <p class="caption">Los fracasos vienen del proceso, <span class="accent">no del modelo</span>.</p>
+  <aside class="notes"><b>NOTAS</b>Conectar cada anti-patrón con la historia que ya se contó. Cerrar: el problema nunca fue la inteligencia del modelo.</aside>
+</section>
+
+<!-- 17 · TAKEAWAYS -->
+<section class="slide">
+  <div class="kicker">Para llevarse</div>
+  <h2>5 takeaways</h2>
+  <ul class="bullets">
+    <li><b>El humano dirige</b>; los agentes ejecutan</li>
+    <li>Proceso repetible: <b>8 fases</b>, un artefacto por fase</li>
+    <li>Costos gestionados por diseño — <b>incluida la elección de modelos</b></li>
+    <li>Verificación honesta que <b>atrapa errores reales</b></li>
+    <li>Comience con un cambio pequeño sobre un <b>sistema existente</b></li>
+  </ul>
+  <aside class="notes"><b>NOTAS</b>Repasar en 30 segundos, sin releer palabra por palabra. Es el resumen para las fotos del público.</aside>
+</section>
+
+<!-- 18 · CÓMO ARRANCAR -->
+<section class="slide">
+  <div class="kicker">Primeros pasos</div>
+  <h2>Cómo arrancar mañana</h2>
+  <ol class="steps">
+    <li>Instale <code class="inline">gentle-ai</code> y corra <code class="inline">sdd-init</code></li>
+    <li>Adopte <code class="inline">openspec/</code> como fuente de verdad</li>
+    <li>Elija un cambio <span class="accent">real y pequeño</span> sobre su sistema actual</li>
+  </ol>
+  <p class="caption">No construya desde cero: haga crecer algo que ya funciona.</p>
+  <aside class="notes"><b>NOTAS</b>Llamado a la acción concreto. Ofrecer compartir el repo de ejemplo y la configuración de routing por fase.</aside>
+</section>
+
+<!-- 19 · GRACIAS -->
+<section class="slide">
+  <div class="kicker">Fin</div>
+  <div class="divider-text">¡Gracias!<br><span class="accent">¿Preguntas?</span></div>
+  <p class="divider-sub mono">geosamples-demo · gentle-ai · openspec</p>
+  <aside class="notes"><b>NOTAS</b>Q&A: tener a mano las 7 preguntas preparadas del outline. Las más probables: alucinaciones, costo, y si esto reemplaza al desarrollador.</aside>
+</section>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const progress = document.getElementById("progress");
+  const counter = document.getElementById("counter");
+  let current = 0;
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle("active", i === current));
+    progress.style.width = ((current + 1) / slides.length * 100) + "%";
+    counter.textContent = (current + 1) + " / " + slides.length;
+    if (location.hash !== "#" + (current + 1)) history.replaceState(null, "", "#" + (current + 1));
+  }
+
+  function go(n) {
+    current = Math.max(0, Math.min(slides.length - 1, n));
+    render();
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(current + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(current - 1); }
+    else if (e.key === "Home") { go(0); }
+    else if (e.key === "End") { go(slides.length - 1); }
+    else if (e.key === "n" || e.key === "N") { document.body.classList.toggle("notes-on"); }
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  // deep-link: abrir en slide específica (#9, por ejemplo)
+  const hash = parseInt(location.hash.replace("#", ""), 10);
+  go(isNaN(hash) ? 0 : hash - 1);
+})();
+</script>
+</body>
+</html>
