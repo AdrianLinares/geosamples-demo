@@ -1,7 +1,8 @@
 // Mock pg Pool + 99 fixture rows for the API contract tests (api.test.ts).
 // The SQL-marker classification and the filter order (code, rock, unit,
-// collector, analysis, plancha, dateFrom, dateTo, q) mirror
-// server/src/routes/samples.ts buildWhere() — keep both in sync.
+// collector, analysis, plancha, dateFrom, dateTo, q, norteMin, norteMax,
+// esteMin, esteMax) mirror server/src/routes/samples.ts buildWhere() — keep
+// both in sync.
 
 type Row = Record<string, unknown> & { codigo_muestra: string };
 
@@ -79,6 +80,10 @@ for (let i = 0; i < 99; i += 1) {
   });
 }
 
+// Null-coordinate fixture for bounding-box exclusion scenarios.
+fixtures[fixtures.length - 1].norte = null;
+fixtures[fixtures.length - 1].este = null;
+
 export const metaRocks = ROCK_NAMES.map((name, i) => ({ id: i + 1, name, normalized_key: keyOf(name) }));
 export const metaCollectors = COLLECTOR_NAMES.map((name, i) => ({ id: i + 1, name, normalized_key: keyOf(name) }));
 export const metaAnalyses = ANALYSIS_NAMES.map((name, i) => ({ id: i + 1, name, normalized_key: keyOf(name) }));
@@ -90,10 +95,11 @@ const stripLike = (p: unknown): string => {
 };
 
 /**
- * Map SQL placeholders to the fixed 9-slot filter order (code, rock, unit,
- * collector, analysis, plancha, dateFrom, dateTo, q). The route only pushes
- * params for present filters, so the mock derives each filter's param by
- * parsing its placeholder number out of the WHERE clause.
+ * Map SQL placeholders to the fixed 13-slot filter order (code, rock, unit,
+ * collector, analysis, plancha, dateFrom, dateTo, q, norteMin, norteMax,
+ * esteMin, esteMax). The route only pushes params for present filters, so the
+ * mock derives each filter's param by parsing its placeholder number out of the
+ * WHERE clause.
  */
 const extractFilters = (sql: string, params: unknown[]): (unknown | undefined)[] => {
   const whereStart = sql.indexOf("WHERE");
@@ -102,7 +108,7 @@ const extractFilters = (sql: string, params: unknown[]): (unknown | undefined)[]
     whereStart < 0
       ? ""
       : sql.slice(whereStart + 5, limitStart < 0 ? undefined : limitStart);
-  const filters: (unknown | undefined)[] = new Array(9).fill(undefined);
+  const filters: (unknown | undefined)[] = new Array(13).fill(undefined);
   const grab = (re: RegExp, slot: number) => {
     const m = re.exec(where);
     if (m !== null) filters[slot] = params[Number(m[1]) - 1];
@@ -116,6 +122,10 @@ const extractFilters = (sql: string, params: unknown[]): (unknown | undefined)[]
   grab(/s\.fecha >= \$(\d+)/, 6);
   grab(/s\.fecha <= \$(\d+)/, 7);
   grab(/s\.descripcion_muestra ILIKE \$(\d+)/, 8);
+  grab(/s\.norte >= \$(\d+)/, 9);
+  grab(/s\.norte <= \$(\d+)/, 10);
+  grab(/s\.este >= \$(\d+)/, 11);
+  grab(/s\.este <= \$(\d+)/, 12);
   return filters;
 };
 
@@ -145,6 +155,18 @@ const applyFilters = (rows: Row[], params: unknown[]): Row[] => {
         String(r.descripcion_muestra).toLowerCase().includes(needle) ||
         String(r.localizacion).toLowerCase().includes(needle),
     );
+  }
+  if (params[9] !== undefined) {
+    out = out.filter((r) => r.norte !== null && Number(r.norte) >= Number(params[9]));
+  }
+  if (params[10] !== undefined) {
+    out = out.filter((r) => r.norte !== null && Number(r.norte) <= Number(params[10]));
+  }
+  if (params[11] !== undefined) {
+    out = out.filter((r) => r.este !== null && Number(r.este) >= Number(params[11]));
+  }
+  if (params[12] !== undefined) {
+    out = out.filter((r) => r.este !== null && Number(r.este) <= Number(params[12]));
   }
   return out;
 };

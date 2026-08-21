@@ -82,12 +82,22 @@ function rowToSample(r: DbSampleRow): Sample {
 
 // ---------------------------------------------------------------------------
 // Filter → WHERE builder. Condition order is FIXED: code, rock, unit,
-// collector, analysis, plancha, dateFrom, dateTo, q (the mock pool in
-// api.test.ts relies on this exact order).
+// collector, analysis, plancha, dateFrom, dateTo, q, norteMin, norteMax,
+// esteMin, esteMax (the mock pool in api.test.ts relies on this exact order).
 // ---------------------------------------------------------------------------
 
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, "\\$&");
+}
+
+function validateBbox(filters: SampleFilters): string | null {
+  if (filters.norteMin !== undefined && filters.norteMax !== undefined && filters.norteMin > filters.norteMax) {
+    return "norteMin must be less than or equal to norteMax";
+  }
+  if (filters.esteMin !== undefined && filters.esteMax !== undefined && filters.esteMin > filters.esteMax) {
+    return "esteMin must be less than or equal to esteMax";
+  }
+  return null;
 }
 
 function buildWhere(filters: SampleFilters): { conditions: string[]; params: unknown[] } {
@@ -131,6 +141,22 @@ function buildWhere(filters: SampleFilters): { conditions: string[]; params: unk
       `(s.descripcion_muestra ILIKE $${params.length} OR s.localizacion ILIKE $${params.length})`,
     );
   }
+  if (filters.norteMin !== undefined) {
+    params.push(filters.norteMin);
+    conditions.push(`s.norte >= $${params.length}`);
+  }
+  if (filters.norteMax !== undefined) {
+    params.push(filters.norteMax);
+    conditions.push(`s.norte <= $${params.length}`);
+  }
+  if (filters.esteMin !== undefined) {
+    params.push(filters.esteMin);
+    conditions.push(`s.este >= $${params.length}`);
+  }
+  if (filters.esteMax !== undefined) {
+    params.push(filters.esteMax);
+    conditions.push(`s.este <= $${params.length}`);
+  }
   return { conditions, params };
 }
 
@@ -145,6 +171,12 @@ function parseFilters(query: Request["query"]): SampleFilters {
     const n = Number.parseInt(s, 10);
     return Number.isNaN(n) ? undefined : n;
   };
+  const num = (v: unknown): number | undefined => {
+    const s = str(v);
+    if (s === undefined) return undefined;
+    const n = Number.parseFloat(s);
+    return Number.isNaN(n) ? undefined : n;
+  };
   return {
     code: str(query.code),
     rock: str(query.rock),
@@ -155,6 +187,10 @@ function parseFilters(query: Request["query"]): SampleFilters {
     dateFrom: str(query.dateFrom),
     dateTo: str(query.dateTo),
     q: str(query.q),
+    norteMin: num(query.norteMin),
+    norteMax: num(query.norteMax),
+    esteMin: num(query.esteMin),
+    esteMax: num(query.esteMax),
     page: int(query.page),
     pageSize: int(query.pageSize),
   };
@@ -212,6 +248,11 @@ export function toCsv(rows: Sample[]): string {
 router.get("/samples", readAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const filters = parseFilters(req.query);
+    const bboxError = validateBbox(filters);
+    if (bboxError !== null) {
+      res.status(400).json({ error: bboxError });
+      return;
+    }
     const { conditions, params } = buildWhere(filters);
     const where = whereClause(conditions);
 
@@ -242,6 +283,11 @@ router.get("/samples", readAuth, async (req: Request, res: Response, next: NextF
 router.get("/samples/export", readAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const filters = parseFilters(req.query);
+    const bboxError = validateBbox(filters);
+    if (bboxError !== null) {
+      res.status(400).json({ error: bboxError });
+      return;
+    }
     const { conditions, params } = buildWhere(filters);
     const where = whereClause(conditions);
     const listResult = await pool.query<DbSampleRow>(

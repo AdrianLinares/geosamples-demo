@@ -37,6 +37,10 @@ export type SampleFilters = {
   dateFrom?: string;
   dateTo?: string;
   q?: string;
+  norteMin?: number;
+  norteMax?: number;
+  esteMin?: number;
+  esteMax?: number;
   page?: number;
   pageSize?: number;
 };
