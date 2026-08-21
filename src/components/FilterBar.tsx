@@ -31,9 +31,18 @@ export default function FilterBar({
   const [dateFrom, setDateFrom] = useState(filters.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(filters.dateTo ?? "");
   const [q, setQ] = useState(filters.q ?? "");
+  const [norteMin, setNorteMin] = useState(filters.norteMin !== undefined ? String(filters.norteMin) : "");
+  const [norteMax, setNorteMax] = useState(filters.norteMax !== undefined ? String(filters.norteMax) : "");
+  const [esteMin, setEsteMin] = useState(filters.esteMin !== undefined ? String(filters.esteMin) : "");
+  const [esteMax, setEsteMax] = useState(filters.esteMax !== undefined ? String(filters.esteMax) : "");
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    const num = (s: string): number | undefined => {
+      if (s.trim() === "") return undefined;
+      const n = Number.parseFloat(s);
+      return Number.isNaN(n) ? undefined : n;
+    };
     onSearch({
       code: code.trim() === "" ? undefined : code.trim(),
       rock: rock === "" ? undefined : rock,
@@ -44,6 +53,10 @@ export default function FilterBar({
       dateFrom: dateFrom === "" ? undefined : dateFrom,
       dateTo: dateTo === "" ? undefined : dateTo,
       q: q.trim() === "" ? undefined : q.trim(),
+      norteMin: num(norteMin),
+      norteMax: num(norteMax),
+      esteMin: num(esteMin),
+      esteMax: num(esteMax),
     });
   }
 
@@ -57,6 +70,10 @@ export default function FilterBar({
     setDateFrom("");
     setDateTo("");
     setQ("");
+    setNorteMin("");
+    setNorteMax("");
+    setEsteMin("");
+    setEsteMax("");
     onSearch({});
   }
 
@@ -115,6 +132,51 @@ export default function FilterBar({
         <span className="mb-1 block font-medium text-slate-700">Fecha hasta</span>
         <input type="date" className={inputClass} value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
       </label>
+      <fieldset className="md:col-span-4">
+        <legend className="mb-2 text-sm font-medium text-slate-700">Caja de extensión (EPSG:3115)</legend>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">Norte mín</span>
+            <input
+              type="number"
+              className={inputClass}
+              value={norteMin}
+              onChange={(e) => setNorteMin(e.target.value)}
+              placeholder="1000"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">Norte máx</span>
+            <input
+              type="number"
+              className={inputClass}
+              value={norteMax}
+              onChange={(e) => setNorteMax(e.target.value)}
+              placeholder="1010"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">Este mín</span>
+            <input
+              type="number"
+              className={inputClass}
+              value={esteMin}
+              onChange={(e) => setEsteMin(e.target.value)}
+              placeholder="2000"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">Este máx</span>
+            <input
+              type="number"
+              className={inputClass}
+              value={esteMax}
+              onChange={(e) => setEsteMax(e.target.value)}
+              placeholder="2010"
+            />
+          </label>
+        </div>
+      </fieldset>
       <label className="block text-sm md:col-span-3">
         <span className="mb-1 block font-medium text-slate-700">Búsqueda libre</span>
         <input className={inputClass} value={q} onChange={(e) => setQ(e.target.value)} placeholder="La descripción o la localidad contiene…" />

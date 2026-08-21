@@ -48,6 +48,20 @@ describe("listSamples", () => {
     );
   });
 
+  it("serializes bounding-box filters and omits undefined ones", async () => {
+    vi.stubGlobal("fetch", fetchMock.mockResolvedValue(jsonResponse({ data: [], total: 0, page: 1, pageSize: 25 })));
+    const filters: SampleFilters = {
+      norteMin: 1005,
+      norteMax: 1010,
+      esteMin: 2000,
+    };
+    await listSamples(filters);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/samples?norteMin=1005&norteMax=1010&esteMin=2000",
+      expect.objectContaining({ headers: {} }),
+    );
+  });
+
   it("sends the stored Basic header when credentials exist", async () => {
     setAuthHeader("admin", "secret");
     vi.stubGlobal("fetch", fetchMock.mockResolvedValue(jsonResponse({ data: [], total: 0, page: 1, pageSize: 25 })));

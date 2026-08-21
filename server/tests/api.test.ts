@@ -225,6 +225,56 @@ describe("GET /api/samples", () => {
     });
     expect(s.norte).toBe(1001);
   });
+
+  it("filters by north range with inclusive bounds", async () => {
+    const res = await request(app).get("/api/samples?norteMin=1005&norteMax=1010");
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(6);
+    expect(res.body.data.map((s: { norte: number }) => s.norte).sort((a: number, b: number) => a - b)).toEqual([
+      1005, 1006, 1007, 1008, 1009, 1010,
+    ]);
+  });
+
+  it("filters by a single north bound only", async () => {
+    const res = await request(app).get("/api/samples?norteMin=1005");
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(93);
+    expect(res.body.data.every((s: { norte: number | null }) => s.norte !== null && s.norte >= 1005)).toBe(true);
+  });
+
+  it("combines bbox with attribute filters", async () => {
+    const res = await request(app).get("/api/samples?rock=granito&esteMin=2000&esteMax=2005");
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(6);
+    expect(res.body.data.every((s: { nombreRoca: string; este: number }) => s.nombreRoca === "Granito" && s.este >= 2000 && s.este <= 2005)).toBe(true);
+  });
+
+  it("excludes samples with null coordinates when any bbox bound is present", async () => {
+    const all = await request(app).get("/api/samples");
+    expect(all.body.total).toBe(99);
+    const filtered = await request(app).get("/api/samples?norteMin=1000");
+    expect(filtered.body.total).toBe(98);
+    expect(filtered.body.data.some((s: { codigoMuestra: string }) => s.codigoMuestra === "SMPL0098")).toBe(false);
+  });
+
+  it("rejects an inverted north box with 400", async () => {
+    const res = await request(app).get("/api/samples?norteMin=1010&norteMax=1005");
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "norteMin must be less than or equal to norteMax" });
+  });
+
+  it("rejects an inverted east box with 400", async () => {
+    const res = await request(app).get("/api/samples?esteMin=2005&esteMax=2000");
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "esteMin must be less than or equal to esteMax" });
+  });
+
+  it("accepts equal north bounds", async () => {
+    const res = await request(app).get("/api/samples?norteMin=1005&norteMax=1005");
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.data[0].norte).toBe(1005);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -297,6 +347,24 @@ describe("GET /api/samples/export", () => {
     const res = await request(app).get("/api/samples/export?q=zzzzz");
     expect(res.status).toBe(200);
     expect(res.text.split("\n")).toHaveLength(1);
+  });
+
+  it("limits exported rows by bbox bounds", async () => {
+    const res = await request(app).get("/api/samples/export?norteMin=1005&norteMax=1010");
+    expect(res.status).toBe(200);
+    const lines = res.text.split("\n");
+    expect(lines).toHaveLength(7); // 6 data rows + header
+    const norteValues = lines
+      .slice(1)
+      .map((l: string) => Number(l.split(",")[10]))
+      .filter((n: number) => !Number.isNaN(n));
+    expect(norteValues).toEqual([1005, 1006, 1007, 1008, 1009, 1010]);
+  });
+
+  it("rejects an inverted bbox on export with 400", async () => {
+    const res = await request(app).get("/api/samples/export?esteMin=2005&esteMax=2000");
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "esteMin must be less than or equal to esteMax" });
   });
 });
 
