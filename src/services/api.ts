@@ -48,6 +48,10 @@ function toQuery(filters: SampleFilters): string {
     ["dateFrom", filters.dateFrom],
     ["dateTo", filters.dateTo],
     ["q", filters.q],
+    ["norteMin", filters.norteMin],
+    ["norteMax", filters.norteMax],
+    ["esteMin", filters.esteMin],
+    ["esteMax", filters.esteMax],
     ["page", filters.page],
     ["pageSize", filters.pageSize],
   ];
