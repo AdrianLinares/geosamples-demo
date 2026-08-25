@@ -8,3 +8,5 @@ coverage/
 .engram/
 .codegraph/
 .pgdata/
+# Local Pi runtime state
+.atl/

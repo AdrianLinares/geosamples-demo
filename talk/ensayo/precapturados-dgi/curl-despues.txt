@@ -1,0 +1,39 @@
+# =====================================================================
+# EVIDENCIA "DESPUÉS" — curl -sI http://localhost:3001/api/samples
+# Capturada: 2026-08-23 22:31 UTC · tras el ciclo security-headers (archivado)
+#
+# Diferencias frente a curl-antes.txt — 3 cabeceras endurecidas por el ciclo:
+#   CSP (línea 2) ............. frame-ancestors 'self' -> 'none'  (default-src 'self' se conserva)
+#   Referrer-Policy (línea 6) . no-referrer -> strict-origin-when-cross-origin
+#   X-Frame-Options (línea 11)  SAMEORIGIN -> DENY
+#
+# Lo que NO cambió y ahora está bajo test (10 escenarios en api.test.ts):
+#   X-Content-Type-Options: nosniff, HSTS, COOP, y el resto del hardening helmet.
+#
+# Ruido NO relacionado con el cambio: Date (reloj) y RateLimit remaining/reset
+# (estado del rate limiter entre requests).
+# Ver salida cruda: grep -v '^#' curl-despues.txt | sed 's/   #.*//'
+# =====================================================================
+HTTP/1.1 200 OK
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'none';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests   # ◄ CAMBIÓ: frame-ancestors 'self' -> 'none'
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: strict-origin-when-cross-origin   # ◄ CAMBIÓ: antes no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: DENY   # ◄ CAMBIÓ: antes SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+Access-Control-Allow-Origin: *
+RateLimit-Policy: 300;w=900
+RateLimit: limit=300, remaining=299, reset=900
+Content-Type: application/json; charset=utf-8
+Content-Length: 13825
+ETag: W/"3601-+M+hvIy38BONVN+FLWvjYL9rlio"
+Date: Sun, 23 Aug 2026 22:31:16 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+

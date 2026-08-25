@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dirigir agentes que construyen software seguro — ciclo SDD bajo la política de IA del SGC</title>
+<style>
+  :root {
+    --bg: #0D1117;
+    --bg-card: #161B22;
+    --border: #30363D;
+    --text: #E6EDF3;
+    --text-dim: #8B949E;
+    --green: #3FB950;
+    --cyan: #58A6FF;
+    --teal: #39C5CF;
+    --amber: #D29922;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: clamp(15px, 1.5vw, 23px);
+    line-height: 1.5;
+  }
+
+  /* ---------- slides ---------- */
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 6vh 7vw 10vh;
+    text-align: center;
+  }
+  .slide.active { display: flex; }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: clamp(0.62rem, 1.05vw, 0.82rem);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 2.5vh;
+  }
+  h1 { font-size: clamp(1.9rem, 4.6vw, 3.5rem); font-weight: 800; line-height: 1.18; }
+  h2 { font-size: clamp(1.5rem, 3.3vw, 2.5rem); font-weight: 700; margin-bottom: 4vh; line-height: 1.25; }
+  .subtitle { color: var(--text-dim); font-size: clamp(0.95rem, 1.7vw, 1.3rem); margin-top: 2.5vh; }
+  .accent { color: var(--green); }
+  .cyan { color: var(--cyan); }
+  .amber { color: var(--amber); }
+  .mono { font-family: var(--mono); }
+
+  ul.bullets { list-style: none; text-align: left; }
+  ul.bullets li {
+    margin: 1.5vh 0;
+    padding-left: 1.6em;
+    position: relative;
+    font-size: clamp(0.95rem, 1.9vw, 1.4rem);
+  }
+  ul.bullets li::before { content: "▸"; color: var(--green); position: absolute; left: 0; }
+  ul.bullets li b { color: var(--cyan); }
+
+  .title-rule { width: 120px; height: 4px; background: var(--green); margin: 3vh auto 0; border-radius: 2px; }
+
+  .browser {
+    width: min(680px, 80vw);
+    margin-top: 4vh;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-card);
+    text-align: left;
+  }
+  .browser-bar { display: flex; gap: 8px; padding: 10px 14px; background: #21262D; border-bottom: 1px solid var(--border); }
+  .browser-bar span { width: 12px; height: 12px; border-radius: 50%; background: #3d444d; }
+  .browser-bar span:nth-child(1) { background: #f85149; }
+  .browser-bar span:nth-child(2) { background: #d29922; }
+  .browser-bar span:nth-child(3) { background: #3fb950; }
+  .browser-body { padding: 28px 22px; font-family: var(--mono); font-size: clamp(0.9rem, 1.6vw, 1.2rem); color: var(--text-dim); }
+  .browser-body b { color: var(--green); }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2vw; width: 100%; max-width: 1200px; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 3.2vh 1.6vw; text-align: left; }
+  .card .num { font-family: var(--mono); color: var(--teal); font-size: clamp(0.8rem, 1.3vw, 1rem); margin-bottom: 1.2vh; }
+  .card h3 { font-size: clamp(1rem, 1.85vw, 1.45rem); margin-bottom: 1.2vh; }
+  .card p { color: var(--text-dim); font-size: clamp(0.83rem, 1.45vw, 1.08rem); }
+
+  table { border-collapse: collapse; width: 100%; max-width: 1150px; margin: 0 auto; }
+  th, td { border: 1px solid var(--border); padding: 1.2vh 1.1vw; text-align: left; font-size: clamp(0.78rem, 1.42vw, 1.12rem); vertical-align: top; }
+  th { font-family: var(--mono); color: var(--teal); font-weight: 600; background: var(--bg-card); }
+  td.dim { color: var(--text-dim); }
+  td .ref { font-family: var(--mono); font-size: 0.85em; color: var(--amber); white-space: nowrap; }
+
+  .cycle { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2vw; width: 100%; max-width: 1250px; }
+  .phase { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 2vh 0.8vw; text-align: center; }
+  .phase .name { font-weight: 700; font-size: clamp(0.95rem, 1.7vw, 1.35rem); }
+  .phase .art { font-family: var(--mono); color: var(--green); font-size: clamp(0.66rem, 1.12vw, 0.9rem); margin-top: 0.8vh; }
+  .caption { color: var(--text-dim); margin-top: 4vh; font-size: clamp(0.88rem, 1.55vw, 1.18rem); }
+
+  .big-number { font-family: var(--mono); font-size: clamp(3.5rem, 10vw, 7.5rem); font-weight: 800; color: var(--green); line-height: 1.1; }
+  .big-number-label { color: var(--text-dim); margin-top: 1vh; }
+
+  .divider-text { font-size: clamp(2.4rem, 6.4vw, 5rem); font-weight: 800; line-height: 1.12; }
+  .divider-sub { color: var(--text-dim); margin-top: 3.5vh; font-size: clamp(0.95rem, 1.9vw, 1.35rem); max-width: 950px; }
+  .divider-tag {
+    display: inline-block; font-family: var(--mono);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 0.8vh 1.4vw; color: var(--green);
+    margin-bottom: 4vh; font-size: clamp(0.72rem, 1.25vw, 0.98rem);
+  }
+
+  .stories { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; width: 100%; max-width: 1250px; }
+  .story { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 3vh 1.8vw; text-align: left; }
+  .story h3 { font-size: clamp(0.98rem, 1.75vw, 1.35rem); margin-bottom: 1.5vh; line-height: 1.35; }
+  .story .lesson { color: var(--text-dim); font-size: clamp(0.86rem, 1.5vw, 1.12rem); }
+  .story .lesson::before { content: "→ "; color: var(--green); font-weight: 700; }
+  .story .tag { font-family: var(--mono); color: var(--teal); font-size: clamp(0.66rem, 1.08vw, 0.88rem); display: block; margin-bottom: 1vh; }
+
+  blockquote.quote { font-size: clamp(1.45rem, 3.2vw, 2.5rem); font-weight: 700; line-height: 1.38; max-width: 1050px; }
+  blockquote.quote::before { content: "“"; color: var(--green); }
+  blockquote.quote::after { content: "”"; color: var(--green); }
+
+  code.inline {
+    font-family: var(--mono);
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 6px; padding: 0.1em 0.45em;
+    font-size: 0.9em; color: var(--teal); white-space: nowrap;
+  }
+
+  /* flujo de datos */
+  .flow { display: flex; align-items: stretch; justify-content: center; gap: 0.9vw; width: 100%; max-width: 1300px; margin-top: 1vh; }
+  .flow-box {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 2.2vh 1.2vw; text-align: center; flex: 1;
+  }
+  .flow-box .t { font-weight: 700; font-size: clamp(0.85rem, 1.55vw, 1.2rem); }
+  .flow-box .d { font-family: var(--mono); color: var(--text-dim); font-size: clamp(0.68rem, 1.15vw, 0.92rem); margin-top: 0.7vh; }
+  .flow-arrow { display: flex; align-items: center; color: var(--green); font-size: clamp(1.1rem, 2vw, 1.7rem); font-weight: 700; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; width: 100%; max-width: 1150px; margin-top: 3.5vh; }
+  .duo .box { border-radius: 12px; padding: 2vh 1.5vw; text-align: left; font-size: clamp(0.82rem, 1.45vw, 1.1rem); }
+  .box.no { background: rgba(248,81,73,0.07); border: 1px solid rgba(248,81,73,0.35); }
+  .box.ctrl { background: rgba(63,185,80,0.07); border: 1px solid rgba(63,185,80,0.35); }
+  .box b.t { display: block; margin-bottom: 0.8vh; font-family: var(--mono); font-size: 0.9em; letter-spacing: 0.08em; }
+  .box.no b.t { color: #f85149; }
+  .box.ctrl b.t { color: var(--green); }
+
+  .steps { text-align: left; counter-reset: paso; }
+  .steps li { list-style: none; margin: 2vh 0; padding-left: 3em; position: relative; font-size: clamp(1rem, 1.95vw, 1.45rem); }
+  .steps li::before {
+    counter-increment: paso; content: counter(paso);
+    position: absolute; left: 0; font-family: var(--mono);
+    color: var(--bg); background: var(--green); border-radius: 8px;
+    width: 2em; height: 2em; display: flex; align-items: center; justify-content: center; font-weight: 800;
+  }
+
+  /* ---------- chrome ---------- */
+  #progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--green); width: 0%; transition: width 0.15s ease; z-index: 50; }
+  #counter { position: fixed; bottom: 18px; right: 26px; font-family: var(--mono); font-size: 0.8rem; color: var(--text-dim); z-index: 50; }
+  #help { position: fixed; bottom: 18px; left: 26px; font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); opacity: 0.55; z-index: 50; }
+  .notes {
+    display: none; position: fixed; bottom: 52px; left: 26px; right: 26px;
+    background: var(--bg-card); border: 1px solid var(--border); border-left: 4px solid var(--teal);
+    border-radius: 10px; padding: 14px 20px; font-size: 0.95rem; color: var(--text-dim);
+    z-index: 60; text-align: left;
+  }
+  .notes b { color: var(--teal); font-family: var(--mono); font-size: 0.8rem; display: block; margin-bottom: 4px; }
+  body.notes-on .notes { display: block; }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="counter"></div>
+<div id="help">← → navegar &nbsp;·&nbsp; N notas &nbsp;·&nbsp; F pantalla completa</div>
+
+<!-- 1 · PORTADA -->
+<section class="slide">
+  <div class="kicker">Charla técnica · Servicio Geológico Colombiano</div>
+  <h1>Dirigir agentes que<br>construyen <span class="accent">software seguro</span></h1>
+  <div class="title-rule"></div>
+  <p class="subtitle">El ciclo Spec-Driven Development frente a la política de IA del SGC<br>— demo en vivo incluida —</p>
+  <aside class="notes"><b>NOTAS</b>Audiencia: Dirección de Gestión de la Información, autores de la política. Mensaje de entrada: no venimos a pedir confianza, venimos a señalar controles concretos en su propio documento.</aside>
+</section>
+
+<!-- 2 · HOOK -->
+<section class="slide">
+  <blockquote class="quote">Esto lo construyeron<br>agentes dirigidos.</blockquote>
+  <div class="browser">
+    <div class="browser-bar"><span></span><span></span><span></span></div>
+    <div class="browser-body">Catálogo geológico · <b>99 samples</b> — page 1 of 4<br>[ SPA React + Vite → :5173 ]</div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>Mismo sistema real de la primera charla. Transición: «hoy la pregunta es otra: ¿este modo de desarrollar puede cumplir nuestra política de IA?»</aside>
+</section>
+
+<!-- 3 · LA PROMESA -->
+<section class="slide">
+  <div class="kicker">La promesa de hoy</div>
+  <h2>La gobernanza no se agrega encima:<br><span class="accent">está incorporada al proceso</span></h2>
+  <ul class="bullets">
+    <li>Va a ver un ciclo completo con <b>supervisión humana en cada puerta</b></li>
+    <li>Va a ver dónde queda la <b>evidencia auditable</b> de cada decisión</li>
+    <li>Y el cambio que ejecutaremos en vivo es… <b>un hardening de seguridad</b></li>
+  </ul>
+  <aside class="notes"><b>NOTAS</b>Fijar el marco: evaluación, no fe. Cada afirmación de seguridad tendrá su equivalente operativo visible.</aside>
+</section>
+
+<!-- 4 · TRES PRINCIPIOS -->
+<section class="slide">
+  <div class="kicker">Qué es desarrollo agéntico</div>
+  <h2>Tres principios, en lenguaje de gobernanza</h2>
+  <div class="cards">
+    <div class="card">
+      <div class="num">01</div>
+      <h3>El humano dirige</h3>
+      <p>Supervisión humana estructural: aprueba alcance y spec, corta fases, decide. No testimonial.</p>
+    </div>
+    <div class="card">
+      <div class="num">02</div>
+      <h3>Verificación honesta</h3>
+      <p>Validación contra criterios explícitos (escenarios, tests). Nunca la autoevaluación del modelo.</p>
+    </div>
+    <div class="card">
+      <div class="num">03</div>
+      <h3>Costos por diseño</h3>
+      <p>Tokens, tiempo y revisión humana — incluida la elección de modelos como decisión de arquitectura.</p>
+    </div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>Espejo del art. 4 de la política (IA como apoyo, no sustitución del criterio experto). Estos principios se materializan en el proceso que sigue.</aside>
+</section>
+
+<!-- 5 · EL CICLO SDD -->
+<section class="slide">
+  <div class="kicker">El proceso</div>
+  <h2>El ciclo SDD: <span class="accent">8 fases</span>, un artefacto cada una</h2>
+  <div class="cycle">
+    <div class="phase"><div class="name">explore</div><div class="art">exploration.md</div></div>
+    <div class="phase"><div class="name">propose</div><div class="art">proposal.md</div></div>
+    <div class="phase"><div class="name">spec</div><div class="art">spec.md</div></div>
+    <div class="phase"><div class="name">design</div><div class="art">design.md</div></div>
+    <div class="phase"><div class="name">tasks</div><div class="art">tasks.md</div></div>
+    <div class="phase"><div class="name">apply</div><div class="art">código + tests</div></div>
+    <div class="phase"><div class="name">verify</div><div class="art">verify-report.md</div></div>
+    <div class="phase"><div class="name">archive</div><div class="art">rastro archivado</div></div>
+  </div>
+  <p class="caption">Cada fase termina en un archivo: el estado del trabajo vive en <span class="accent">artefactos auditables</span>, no en una conversación.</p>
+  <aside class="notes"><b>NOTAS</b>Idea ancla para este público: eso es trazabilidad por construcción. Lo que viene ahora es el mapeo contra SU documento.</aside>
+</section>
+
+<!-- 6 · EL SPEC ES UN CONTRATO -->
+<section class="slide">
+  <div class="kicker">La pieza central</div>
+  <h2>El spec es un contrato</h2>
+  <ul class="bullets">
+    <li>Requerimientos + escenarios <b>Given / When / Then</b></li>
+    <li>Verify juzga contra el spec, <b>no contra la intuición</b></li>
+  </ul>
+  <div style="margin-top:5vh;">
+    <div class="big-number">45/45</div>
+    <div class="big-number-label">escenarios COMPLIANT en el sistema real — uno por uno, con test que lo cubre</div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>Número del ciclo que construyó el sistema inicial. La verificación exhaustiva es la norma del proceso, no el excepcional.</aside>
+</section>
+
+<!-- 7 · EL CICLO IMPLEMENTA LA POLÍTICA -->
+<section class="slide">
+  <div class="kicker">Gobernanza incorporada</div>
+  <h2>El ciclo implementa <span class="accent">su política</span>, artículo por artículo</h2>
+  <table>
+    <tr><th>Su política exige</th><th>El ciclo SDD lo implementa con</th></tr>
+    <tr>
+      <td><span class="ref">cap. 5 · lína. 450</span><br>Ningún agente con permisos sobre producción ni acceso irrestricto a secretos, infraestructura o BD</td>
+      <td>Agente <b>confinado al workspace local</b>; única DB = Postgres de desarrollo con datos de catálogo; credenciales fuera del directorio</td>
+    </tr>
+    <tr>
+      <td><span class="ref">lína. 450</span><br>Cambios en ramas + revisión PR antes de integrar</td>
+      <td>Apply trabaja <b>en rama</b>; la integración requiere revisión humana</td>
+    </tr>
+    <tr>
+      <td><span class="ref">lína. 497</span><br>Trazabilidad: herramienta, responsable, archivos, pruebas</td>
+      <td><code class="inline">openspec/changes/{cambio}/</code> + historial git = <b>expediente completo</b>, producido automáticamente</td>
+    </tr>
+    <tr>
+      <td><span class="ref">lína. 654</span><br>Prohibido Vibe Coding autónomo hacia producción o BD institucionales</td>
+      <td><b>Puertas humanas en cada fase</b>; ninguna fase despliega ni toca sistemas en ejecución</td>
+    </tr>
+    <tr>
+      <td><span class="ref">art. 176 · lína. 674</span><br>Asistente institucional de código, «Vibe Coding controlado»</td>
+      <td>Este ciclo: <b>candidato concreto, funcionando y medible</b> — hoy en vivo</td>
+    </tr>
+  </table>
+  <aside class="notes"><b>NOTAS</b>Slide central de esta versión. No pedimos confianza: señalamos dónde está cada control EN SU TEXTO y cuál es su equivalente operativo. Dejar 20 s de lectura.</aside>
+</section>
+
+<!-- 8 · QUÉ SALE DE LA MÁQUINA -->
+<section class="slide">
+  <div class="kicker">Soberanía, con precisión</div>
+  <h2>¿Qué sale de la máquina?</h2>
+  <div class="flow">
+    <div class="flow-box"><div class="t">Workspace local</div><div class="d">repo del proyecto</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box"><div class="t">opencode</div><div class="d">ejecuta en local</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box"><div class="t">proveedor de modelos</div><div class="d">OpenCode Go / Zen</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box"><div class="t">texto generado</div><div class="d">vuelve y se aplica al repo</div></div>
+  </div>
+  <div class="duo">
+    <div class="box no">
+      <b class="t">LO QUE NUNCA CRUZA (por diseño)</b>
+      Producción · staging · redes institucionales · bases de datos institucionales · credenciales (si viven en mecanismos institucionales, fuera del workspace)
+    </div>
+    <div class="box ctrl">
+      <b class="t">EL CONTROL REAL</b>
+      Clasificación previa (cap. 2): lo reservado no vive en el directorio que el agente lee. Trato del proveedor: cláusulas de la línea 189 (no entrenamiento, subencargados, eliminación certificada).
+    </div>
+  </div>
+  <p class="caption">La seguridad no es una promesa del proveedor: es una propiedad del proceso.</p>
+  <aside class="notes"><b>NOTAS</b>Honestidad deliberada: sí sale código leído del workspace hacia el proveedor. Por eso el control principal es clasificación previa + herramienta autorizada, exactamente como piden sus líneas 195 y 797. Datos de la demo: catálogo de demostración.</aside>
+</section>
+
+<!-- 9 · DIVIDER DEMO -->
+<section class="slide">
+  <div class="divider-tag">demo en vivo</div>
+  <div class="divider-text">DEMO:<br><span class="accent">hardening de seguridad</span></div>
+  <p class="divider-sub">El cambio: middleware de cabeceras de seguridad en toda la API<br>
+  <span class="mono" style="color:var(--teal)">X-Content-Type-Options · X-Frame-Options · Referrer-Policy · Content-Security-Policy</span></p>
+  <p class="divider-sub" style="font-size:clamp(0.85rem,1.5vw,1.1rem);">Un requisito NO funcional de seguridad desarrollado con el mismo ciclo que cualquier capacidad — con la misma trazabilidad.</p>
+  <aside class="notes"><b>NOTAS</b>Público de ronda 1 verá material nuevo: la ronda anterior agregó una capacidad; hoy el agente endurece el sistema. Verificación visual: curl -I antes/después.</aside>
+</section>
+
+<!-- 10 · TRACKER DEL CICLO (FIJO DURANTE LA DEMO) -->
+<section class="slide">
+  <div class="kicker">Ciclo en vivo</div>
+  <h2>Time-boxes <span class="accent">vs</span> ensayo medido</h2>
+  <table style="max-width:900px;">
+    <tr><th>Etapa</th><th>Time-box</th><th>Medido en ensayo</th></tr>
+    <tr><td>Consigna</td><td class="dim">30 s</td><td class="dim">—</td></tr>
+    <tr><td>explore</td><td class="dim">30 s–1 min</td><td class="mono">2m42s</td></tr>
+    <tr><td>propose</td><td class="dim">1 min</td><td class="mono">4m42s</td></tr>
+    <tr><td>spec</td><td class="dim">1–2 min</td><td class="mono">3m59s</td></tr>
+    <tr><td>design</td><td class="dim">1 min</td><td class="mono">7m01s</td></tr>
+    <tr><td>tasks</td><td class="dim">1 min</td><td class="mono">3m02s</td></tr>
+    <tr><td>apply</td><td class="dim">3–5 min</td><td class="mono">2m28s</td></tr>
+    <tr><td>verify</td><td class="dim">1 min</td><td class="mono">2m53s</td></tr>
+    <tr><td>cierre + curl -I</td><td class="dim">1 min</td><td class="dim">—</td></tr>
+  </table>
+  <p class="caption"><span class="accent">El corte por tiempo es parte de la narrativa:</span> así termina una sesión real — y las pausas donde yo decido son la supervisión humana del art. 4. Ciclo completo de ensayo: <span class="mono accent">28m38s</span>.</p>
+  <aside class="notes"><b>NOTAS</b>Columna «medido» se llena tras el ensayo 3 (security headers). Este slide permanece fijo durante toda la demo. Señalar puertas humanas cuando aparezcan en pantalla.</aside>
+</section>
+
+<!-- 11 · CIERRE DE DEMO -->
+<section class="slide">
+  <div class="kicker">Cierre de la demo</div>
+  <blockquote class="quote">Las cabeceras nuevas no las escribió nadie a mano:<br>las especificó un spec,<br>las implementó un agente,<br>y las aprobó <span class="accent">una persona</span>.</blockquote>
+  <aside class="notes"><b>NOTAS</b>Mostrar aquí el curl -I después: cabeceras presentes. Tres líneas = spec → agente → persona: resumen de gobernanza en una frase.</aside>
+</section>
+
+<!-- 12 · DIVIDER HISTORIAS -->
+<section class="slide">
+  <div class="divider-tag">evidencia del viaje real</div>
+  <div class="divider-text">La verificación<br><span class="accent">atrapa errores de verdad</span></div>
+  <p class="divider-sub">Cuatro historias reales del sistema — cada una deja su evidencia en el repositorio.</p>
+  <aside class="notes"><b>NOTAS</b>Tono: confesar errores propios genera más credibilidad que ocultarlos. ~40 s por historia.</aside>
+</section>
+
+<!-- 13 · HISTORIAS 1-2 -->
+<section class="slide">
+  <div class="kicker">Historias 1–2</div>
+  <div class="stories">
+    <div class="story">
+      <span class="tag">historia 01 · mocks vs realidad</span>
+      <h3>Bug de schema.sql que ningún test con mock atrapó: constraint UNIQUE sobre expresión es inválida en Postgres.</h3>
+      <p class="lesson">los mocks pasan; la realidad corrige — verify no es un formalismo</p>
+    </div>
+    <div class="story">
+      <span class="tag">historia 02 · verify exigente</span>
+      <h3>Verify falló al primer intento: 2 escenarios críticos sin test → 2 remediaciones → PASS 45/45.</h3>
+      <p class="lesson">el proceso expone los problemas en vez de esconderlos</p>
+    </div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>H1: apareció recién en el seed en vivo contra Postgres real. H2: el FAIL inicial está documentado en el verify-report archivado — auditoría puede leerlo.</aside>
+</section>
+
+<!-- 14 · HISTORIAS 3-4 -->
+<section class="slide">
+  <div class="kicker">Historias 3–4</div>
+  <div class="stories">
+    <div class="story">
+      <span class="tag">historia 03 · seguridad por diseño</span>
+      <h3>Auth fail-closed: ADMIN_USERS vacío bloquea todas las operaciones admin; 401 idénticos para credenciales inválidas.</h3>
+      <p class="lesson">el sistema no filtra información por error</p>
+    </div>
+    <div class="story">
+      <span class="tag">historia 04 · integridad científica</span>
+      <h3>57 variantes de roca → 42 canónicas; typos de colectores corregidos; columnas muertas descartadas con evidencia.</h3>
+      <p class="lesson">sin calidad de datos, los resultados mienten — el EXPLORE paga</p>
+    </div>
+  </div>
+  <aside class="notes"><b>NOTAS</b>H3: dos curls en vivo devuelven exactamente el mismo cuerpo. H4: conecta directo con integridad científica (cap. 6 de la política).</aside>
+</section>
+
+<!-- 15 · ANTI-PATRONES -->
+<section class="slide">
+  <div class="kicker">Errores comunes</div>
+  <h2>Anti-patrones</h2>
+  <ul class="bullets">
+    <li><b>Promptear y rezar</b>: pedir sin especificación ni verificación</li>
+    <li>Dejar que el agente haga todo <b>sin revisar</b></li>
+    <li>Ignorar los <b>datos reales</b></li>
+    <li>Tests que solo pasan <b>en mock</b></li>
+    <li>No definir qué es <b>«listo»</b></li>
+    <li>Mezclar modelos <b>sin criterio</b></li>
+  </ul>
+  <p class="caption">Los fracasos vienen del proceso, <span class="accent">no del modelo</span>.</p>
+  <aside class="notes"><b>NOTAS</b>Para este público el mensaje clave: por eso existe la política — porque el modo de fallar es conocido y controlable.</aside>
+</section>
+
+<!-- 16 · TAKEAWAYS -->
+<section class="slide">
+  <div class="kicker">Para llevarse</div>
+  <h2>5 conclusiones</h2>
+  <ul class="bullets">
+    <li>El ciclo SDD <b>implementa artículos concretos</b> de la política (450, 497, 654, art. 176)</li>
+    <li>La seguridad es <b>propiedad del proceso</b>: agente confinado, secretos fuera, review read-only</li>
+    <li>Los requisitos no funcionales se desarrollan con el <b>mismo ciclo disciplinado</b></li>
+    <li>Soberanía = <b>clasificar antes</b>: lo reservado no vive en el workspace del agente</li>
+    <li>Cada fase produce la <b>evidencia mínima</b> que la política exige — automáticamente</li>
+  </ul>
+  <aside class="notes"><b>NOTAS</b>Repaso de 30 segundos. Es el slide para las fotos.</aside>
+</section>
+
+<!-- 17 · PRÓXIMO PASO INSTITUCIONAL -->
+<section class="slide">
+  <div class="kicker">Del artículo 176 a la práctica</div>
+  <h2>El camino institucional ya está trazado</h2>
+  <ol class="steps">
+    <li><b>Piloto controlado</b>: un equipo, repos clasificados, herramientas autorizadas</li>
+    <li><b>Registro de solución</b>: matriz del Anexo A — herramienta, agentes, modelos, evidencias</li>
+    <li><b>Evaluación DGI</b>: controles diferenciados por nivel de autonomía y riesgo del sistema intervenido</li>
+  </ol>
+  <p class="caption">Lo que vieron hoy funciona y mide. <span class="accent">Falta decidir dónde escala primero.</span></p>
+  <aside class="notes"><b>NOTAS</b>Llamado a la acción institucional, no comercial. Ofrecer acceso al repositorio de demostración, artefactos completos y configuración de routing como insumos de la evaluación.</aside>
+</section>
+
+<!-- 18 · GRACIAS -->
+<section class="slide">
+  <div class="kicker">Fin</div>
+  <div class="divider-text">¡Gracias!<br><span class="accent">¿Preguntas?</span></div>
+  <p class="divider-sub mono">geosamples-demo · gentle-ai · openspec · política IA SGC v2.0</p>
+  <aside class="notes"><b>NOTAS</b>Q&A: 7 preguntas preparadas en outline-dgi.md (dónde corren, qué sale, responsabilidad, auditoría, alcance de red, dependencia del proveedor, rol del equipo).</aside>
+</section>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const progress = document.getElementById("progress");
+  const counter = document.getElementById("counter");
+  let current = 0;
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle("active", i === current));
+    progress.style.width = ((current + 1) / slides.length * 100) + "%";
+    counter.textContent = (current + 1) + " / " + slides.length;
+    if (location.hash !== "#" + (current + 1)) history.replaceState(null, "", "#" + (current + 1));
+  }
+
+  function go(n) {
+    current = Math.max(0, Math.min(slides.length - 1, n));
+    render();
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(current + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(current - 1); }
+    else if (e.key === "Home") { go(0); }
+    else if (e.key === "End") { go(slides.length - 1); }
+    else if (e.key === "n" || e.key === "N") { document.body.classList.toggle("notes-on"); }
+    else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  const hash = parseInt(location.hash.replace("#", ""), 10);
+  go(isNaN(hash) ? 0 : hash - 1);
+})();
+</script>
+</body>
+</html>

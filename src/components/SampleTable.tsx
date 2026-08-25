@@ -11,14 +11,24 @@ export type SampleTableProps = {
 };
 
 const cellClass = "px-3 py-2 text-sm";
-const headClass = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500";
+const headClass =
+  "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500";
 
-export default function SampleTable({ samples, total, page, pageSize, onPageChange }: SampleTableProps) {
+export default function SampleTable({
+  samples,
+  total,
+  page,
+  pageSize,
+  onPageChange,
+}: SampleTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   if (samples.length === 0) {
     return (
-      <div className="rounded border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500" data-testid="empty-state">
+      <div
+        className="rounded border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500"
+        data-testid="empty-state"
+      >
         No se encontraron muestras con los filtros actuales.
       </div>
     );
@@ -35,6 +45,8 @@ export default function SampleTable({ samples, total, page, pageSize, onPageChan
               <th className={headClass}>Unidad</th>
               <th className={headClass}>Fecha</th>
               <th className={headClass}>Localidad</th>
+              <th className={headClass}>Norte</th>
+              <th className={headClass}>Este</th>
               <th className={headClass}>Análisis</th>
               <th className={headClass}>Colector</th>
             </tr>
@@ -42,11 +54,17 @@ export default function SampleTable({ samples, total, page, pageSize, onPageChan
           <tbody className="divide-y divide-slate-100">
             {samples.map((sample) => (
               <tr key={sample.id} className="hover:bg-slate-50">
-                <td className={`${cellClass} font-medium text-sky-700`}>{sample.codigoMuestra}</td>
+                <td className={`${cellClass} font-medium text-sky-700`}>
+                  {sample.codigoMuestra}
+                </td>
                 <td className={cellClass}>{sample.nombreRoca}</td>
-                <td className={cellClass}>{sample.ugMapa ?? sample.simboloUG ?? "—"}</td>
+                <td className={cellClass}>
+                  {sample.ugMapa ?? sample.simboloUG ?? "—"}
+                </td>
                 <td className={cellClass}>{sample.fecha}</td>
                 <td className={cellClass}>{sample.localizacion}</td>
+                <td className={cellClass}>{sample.norte ?? "—"}</td>
+                <td className={cellClass}>{sample.este ?? "—"}</td>
                 <td className={cellClass}>{sample.tipoAnalisis}</td>
                 <td className={cellClass}>{sample.nombreColector ?? "—"}</td>
               </tr>
@@ -56,7 +74,8 @@ export default function SampleTable({ samples, total, page, pageSize, onPageChan
       </div>
       <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
         <span data-testid="total-count">
-          {total} muestra{total === 1 ? "" : "s"} — página {page} de {totalPages}
+          {total} muestra{total === 1 ? "" : "s"} — página {page} de{" "}
+          {totalPages}
         </span>
         <div className="flex gap-2">
           <button
