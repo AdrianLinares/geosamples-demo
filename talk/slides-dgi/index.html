@@ -268,7 +268,43 @@
   <aside class="notes"><b>NOTAS</b>Número del ciclo que construyó el sistema inicial. La verificación exhaustiva es la norma del proceso, no el excepcional.</aside>
 </section>
 
-<!-- 7 · EL CICLO IMPLEMENTA LA POLÍTICA -->
+<!-- 7 · STACK GENTLE-AI -->
+<section class="slide">
+  <div class="kicker">Las herramientas</div>
+  <h2>Debajo del ciclo: el ecosistema <span class="accent">Gentle-AI</span></h2>
+  <table>
+    <tr><th>Herramienta</th><th>Cómo ahorra tokens</th><th>Cómo refuerza el ciclo</th></tr>
+    <tr>
+      <td><b>Sub-agentes por fase</b><br><span class="dim" style="font-size:0.85em;">orquestador + 8 agentes SDD</span></td>
+      <td class="dim">Cada fase corre en un agente enfocado que lee los artefactos previos — no la conversación completa</td>
+      <td>Puerta humana natural entre fases; artefacto verificable al cierre de cada una</td>
+    </tr>
+    <tr>
+      <td><b>Perfiles de modelos por fase</b></td>
+      <td class="dim">Modelo económico para explorar y listar tareas; potente solo donde agrega valor (diseño)</td>
+      <td>El costo por fase es una decisión de arquitectura, auditable</td>
+    </tr>
+    <tr>
+      <td><b>CodeGraph</b></td>
+      <td class="dim">Índice semántico del repositorio: una consulta estructurada reemplaza cadenas de búsqueda + lectura</td>
+      <td>Exploración reproducible que ancla el EXPLORE</td>
+    </tr>
+    <tr>
+      <td><b>Engram — memoria persistente</b></td>
+      <td class="dim">Decisiones y artefactos sobreviven entre sesiones y compactions: cero re-explicar contexto</td>
+      <td>Trazabilidad continua entre sesiones de trabajo</td>
+    </tr>
+    <tr>
+      <td><b>Review acotado (opt-in)</b></td>
+      <td class="dim">Profundidad de revisión según evidencia, no según tamaño</td>
+      <td>Congela el candidato: una revisión, una corrección con presupuesto, un recibo</td>
+    </tr>
+  </table>
+  <p class="caption"><span class="mono" style="color:var(--teal)">gentle-pi</span> lleva este mismo stack al agente Pi: el flujo de trabajo no queda atado a una sola herramienta.</p>
+  <aside class="notes"><b>NOTAS</b>Fuente: README oficial Gentleman-Programming/gentle-ai. Citas textuales: «focused subagents instead of one growing conversation»; perfiles = «a powerful model for design, a fast one for implementation, a cheap one for exploration»; review = «review effort from evidence, never size alone». Conexión DGI: costo = principio 3 (costos por diseño); trazabilidad reforzada por artefactos + Engram; review acotado = evidencia verificable sin revisión infinita.</aside>
+</section>
+
+<!-- 8 · EL CICLO IMPLEMENTA LA POLÍTICA -->
 <section class="slide">
   <div class="kicker">Gobernanza incorporada</div>
   <h2>El ciclo implementa <span class="accent">su política</span>, artículo por artículo</h2>
@@ -298,7 +334,7 @@
   <aside class="notes"><b>NOTAS</b>Slide central de esta versión. No pedimos confianza: señalamos dónde está cada control EN SU TEXTO y cuál es su equivalente operativo. Dejar 20 s de lectura.</aside>
 </section>
 
-<!-- 8 · QUÉ SALE DE LA MÁQUINA -->
+<!-- 9 · QUÉ SALE DE LA MÁQUINA -->
 <section class="slide">
   <div class="kicker">Soberanía, con precisión</div>
   <h2>¿Qué sale de la máquina?</h2>
@@ -325,7 +361,7 @@
   <aside class="notes"><b>NOTAS</b>Honestidad deliberada: sí sale código leído del workspace hacia el proveedor. Por eso el control principal es clasificación previa + herramienta autorizada, exactamente como piden sus líneas 195 y 797. Datos de la demo: catálogo de demostración.</aside>
 </section>
 
-<!-- 9 · DIVIDER DEMO -->
+<!-- 10 · DIVIDER DEMO -->
 <section class="slide">
   <div class="divider-tag">demo en vivo</div>
   <div class="divider-text">DEMO:<br><span class="accent">hardening de seguridad</span></div>
@@ -335,7 +371,7 @@
   <aside class="notes"><b>NOTAS</b>Público de ronda 1 verá material nuevo: la ronda anterior agregó una capacidad; hoy el agente endurece el sistema. Verificación visual: curl -I antes/después.</aside>
 </section>
 
-<!-- 10 · TRACKER DEL CICLO (FIJO DURANTE LA DEMO) -->
+<!-- 11 · TRACKER DEL CICLO (FIJO DURANTE LA DEMO) -->
 <section class="slide">
   <div class="kicker">Ciclo en vivo</div>
   <h2>Time-boxes <span class="accent">vs</span> ensayo medido</h2>
@@ -355,14 +391,14 @@
   <aside class="notes"><b>NOTAS</b>Columna «medido» se llena tras el ensayo 3 (security headers). Este slide permanece fijo durante toda la demo. Señalar puertas humanas cuando aparezcan en pantalla.</aside>
 </section>
 
-<!-- 11 · CIERRE DE DEMO -->
+<!-- 12 · CIERRE DE DEMO -->
 <section class="slide">
   <div class="kicker">Cierre de la demo</div>
   <blockquote class="quote">Las cabeceras nuevas no las escribió nadie a mano:<br>las especificó un spec,<br>las implementó un agente,<br>y las aprobó <span class="accent">una persona</span>.</blockquote>
   <aside class="notes"><b>NOTAS</b>Mostrar aquí el curl -I después: cabeceras presentes. Tres líneas = spec → agente → persona: resumen de gobernanza en una frase.</aside>
 </section>
 
-<!-- 12 · DIVIDER HISTORIAS -->
+<!-- 13 · DIVIDER HISTORIAS -->
 <section class="slide">
   <div class="divider-tag">evidencia del viaje real</div>
   <div class="divider-text">La verificación<br><span class="accent">atrapa errores de verdad</span></div>
@@ -370,7 +406,7 @@
   <aside class="notes"><b>NOTAS</b>Tono: confesar errores propios genera más credibilidad que ocultarlos. ~40 s por historia.</aside>
 </section>
 
-<!-- 13 · HISTORIAS 1-2 -->
+<!-- 14 · HISTORIAS 1-2 -->
 <section class="slide">
   <div class="kicker">Historias 1–2</div>
   <div class="stories">
@@ -388,7 +424,7 @@
   <aside class="notes"><b>NOTAS</b>H1: apareció recién en el seed en vivo contra Postgres real. H2: el FAIL inicial está documentado en el verify-report archivado — auditoría puede leerlo.</aside>
 </section>
 
-<!-- 14 · HISTORIAS 3-4 -->
+<!-- 15 · HISTORIAS 3-4 -->
 <section class="slide">
   <div class="kicker">Historias 3–4</div>
   <div class="stories">
@@ -406,7 +442,7 @@
   <aside class="notes"><b>NOTAS</b>H3: dos curls en vivo devuelven exactamente el mismo cuerpo. H4: conecta directo con integridad científica (cap. 6 de la política).</aside>
 </section>
 
-<!-- 15 · ANTI-PATRONES -->
+<!-- 16 · ANTI-PATRONES -->
 <section class="slide">
   <div class="kicker">Errores comunes</div>
   <h2>Anti-patrones</h2>
@@ -422,7 +458,7 @@
   <aside class="notes"><b>NOTAS</b>Para este público el mensaje clave: por eso existe la política — porque el modo de fallar es conocido y controlable.</aside>
 </section>
 
-<!-- 16 · TAKEAWAYS -->
+<!-- 17 · TAKEAWAYS -->
 <section class="slide">
   <div class="kicker">Para llevarse</div>
   <h2>5 conclusiones</h2>
@@ -436,7 +472,7 @@
   <aside class="notes"><b>NOTAS</b>Repaso de 30 segundos. Es el slide para las fotos.</aside>
 </section>
 
-<!-- 17 · PRÓXIMO PASO INSTITUCIONAL -->
+<!-- 18 · PRÓXIMO PASO INSTITUCIONAL -->
 <section class="slide">
   <div class="kicker">Del artículo 176 a la práctica</div>
   <h2>El camino institucional ya está trazado</h2>
@@ -449,7 +485,7 @@
   <aside class="notes"><b>NOTAS</b>Llamado a la acción institucional, no comercial. Ofrecer acceso al repositorio de demostración, artefactos completos y configuración de routing como insumos de la evaluación.</aside>
 </section>
 
-<!-- 18 · GRACIAS -->
+<!-- 19 · GRACIAS -->
 <section class="slide">
   <div class="kicker">Fin</div>
   <div class="divider-text">¡Gracias!<br><span class="accent">¿Preguntas?</span></div>

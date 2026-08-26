@@ -42,15 +42,15 @@ curl -sI http://localhost:3001/api/samples | tee talk/ensayo/curl-antes.txt
 
 En sesión nueva de OpenCode abierta **en el repo**, plantear:
 
-> "La API usa helmet con sus valores por defecto. Endurecé la configuración de
+> "La API usa helmet con sus valores por defecto. Endurece la configuración de
 > seguridad de todas las respuestas de la API a estos valores exactos:
 > `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
 > `Referrer-Policy: strict-origin-when-cross-origin` y
 > `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'`.
-> Mantené el resto del hardening existente intacto. Seguí el patrón de
-> configuración centralizada en `server/src/index.ts`, y actualizá los tests
+> Manten el resto del hardening existente intacto. Sigue el patrón de
+> configuración centralizada en `server/src/index.ts`, y actualiza los tests
 > de la API juntos, verificando cada cabecera en `GET /api/health` y
-> `GET /api/samples`. Corré el ciclo SDD."
+> `GET /api/samples`. Corre el ciclo SDD."
 
 **Qué decir mientras corre**: "Le estoy pidiendo un hardening — un requisito no funcional
 de seguridad — con la misma disciplina que una capacidad: spec primero, tests juntos.
@@ -89,6 +89,25 @@ Frase: *"las cabeceras nuevas no las escribió nadie a mano: las especificó un 
 las implementó un agente y las aprobó una persona."*
 
 ---
+
+## Talking points: el stack Gentle-AI (slide 7)
+
+Si preguntan "¿y todo esto qué costo tiene?" o "¿qué herramientas son?", la respuesta
+está en el slide 7 del deck (fuente: README oficial Gentleman-Programming/gentle-ai):
+
+- **Sub-agentes por fase**: tokens acotados — cada agente lee artefactos previos,
+  no el historial completo; además crea la puerta humana natural entre fases.
+- **Perfiles de modelos**: barato para explore/tasks, potente para design →
+  el costo se asigna donde impacta y queda auditable por fase.
+- **CodeGraph**: índice semántico del repo; una consulta reemplaza loops de grep+lectura.
+- **Engram**: memoria persistente entre sesiones y compactions → cero re-exploración;
+  refuerza trazabilidad.
+- **Review acotado (opt-in)**: congela el candidato; esfuerzo según evidencia, no tamaño;
+  una corrección con presupuesto fijo.
+- **gentle-pi**: mismo stack para el agente Pi → el workflow no queda atado a una herramienta.
+
+Dato duro de apoyo: el ensayo 3 midió el ciclo completo en 28m38s sin cortes —
+la economía de tokens/tiempo está medida, no prometida.
 
 ## Planes de respaldo
 
